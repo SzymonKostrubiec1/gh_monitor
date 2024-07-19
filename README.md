@@ -24,11 +24,13 @@ Mini system that prevents orphan, not merged, branches to occur.
 - Show all branches in all repos that belongs to developer that do
     not exist in organization
 
+## Other
+
 ### Credentials
 
 - Github token should be passed by env variable.
 
-### Other
+### Requirements
 
 - [ ] Create dockerfile and docker-compose - run as docker-compose
 - [ ] Use pipenv for dependance
