@@ -49,6 +49,19 @@ def create_app():
             time=round(elapsed, 2),
         )
 
+    @app.route("/orphans.html")
+    def orphans():
+        start = time.time()
+        orphan_record, members_repo_record = search_orphaned_branches(org)
+        elapsed = time.time() - start
+        return render_template(
+            "orphans.html",
+            org_name=org.login,
+            orphan_record=orphan_record,
+            members_repo_record=members_repo_record,
+            time=round(elapsed, 2),
+        )
+
     return app
 
 
@@ -80,8 +93,36 @@ def get_open_branches(org: github.Organization.Organization):
     return open_branches
 
 
+@cache
+def search_orphaned_branches(org: github.Organization.Organization):
+    # search for forks outside of organization
+    repos = org.get_repos()
+    members = (
+        org.get_members()
+    )  # FIXME: organization has no public members, no way to test
+
+    orphan_record = []
+
+    for repo in repos:
+        for fork in repo.get_forks():
+            if True:  #  fork.owner in members: # FIXME
+                name = (
+                    fork.owner.name if fork.owner.name is not None else fork.owner.login
+                )
+                orphan_record.append([repo.name, name])
+
+    members_repo_record = []
+    # list public repositories beloning to organization members
+    for member in members:
+        for repo in member.get_repos():
+            name = member.name if member.name is not None else member.login
+            members_repo_record.append([name, repo.name])
+
+    return orphan_record, members_repo_record
+
+
 def count_open_branches_per_developer(open_branches):
-    return [
+    count_record = [
         (
             developer.name
             if developer is not None and developer.name is not None
@@ -92,6 +133,8 @@ def count_open_branches_per_developer(open_branches):
         )
         for developer, branches in open_branches.items()
     ]
+    count_record.sort(key=lambda record: record[1], reverse=True)
+    return count_record
 
 
 def convert_record_to_text(open_branches):

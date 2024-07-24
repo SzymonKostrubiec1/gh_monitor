@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GH Monitor</title>
+    <style>
+      table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      td,
+      tr,
+      th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+      }
+      th {
+        font-weight: bold;
+      }
+      .text {
+        display: block;
+        width: 400px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="margin: auto; width: 80%">
+      <a href="/">Back to main page</a>
+      <h4>Organization: {{org_name}}</h4>
+      <p>API Calls took {{time}} seconds</p>
+      <h5>Forks of repositories beloning to the {{org_name}}</h5>
+      <div id="short-table" style="margin: auto; width: 60%">
+        <table>
+          <tr>
+            <th>Repository</th>
+            <th>Forked by</th>
+          </tr>
+          {%for repo_name, owner_name in orphan_record%}
+          <tr>
+            <td>{{repo_name}}</td>
+            <td>{{owner_name}}</td>
+          </tr>
+          {%endfor%}
+        </table>
+      </div>
+      <h5>Unrelated repositories belonging to members</h5>
+      <div id="short-table" style="margin: auto; width: 60%">
+        <table>
+          <tr>
+            <th>Owner</th>
+            <th>Repository</th>
+          </tr>
+          {%for member_name, owner_name in members_repo_record%}
+          <tr>
+            <td>{{member_name}}</td>
+            <td>{{owner_name}}</td>
+          </tr>
+          {%endfor%}
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
