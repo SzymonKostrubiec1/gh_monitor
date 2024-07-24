@@ -41,11 +41,13 @@
           <tr>
             <th>Repository</th>
             <th>Forked by</th>
+            <th>Last commit</th>
           </tr>
-          {%for repo_name, owner_name in orphan_record%}
+          {%for repo_name, owner_name, time_to_last_commit in orphan_record%}
           <tr>
             <td>{{repo_name}}</td>
             <td>{{owner_name}}</td>
+            <td>{{time_to_last_commit}}</td>
           </tr>
           {%endfor%}
         </table>

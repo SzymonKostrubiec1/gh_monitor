@@ -109,7 +109,10 @@ def search_orphaned_branches(org: github.Organization.Organization):
                 name = (
                     fork.owner.name if fork.owner.name is not None else fork.owner.login
                 )
-                orphan_record.append([repo.name, name])
+                commits = fork.get_commits()
+                last_commit_time = commits[0].commit.committer.date
+                ago_str = arrow.get(last_commit_time).humanize()
+                orphan_record.append([repo.name, name, ago_str])
 
     members_repo_record = []
     # list public repositories beloning to organization members

@@ -2,9 +2,9 @@
 
 Mini system that prevents orphan, not merged, branches to occur.
 
-- [ ] use pyGithub
-- [ ] grab some data
-- [ ] display as static html website (only colored text to html)
+- [x] use pyGithub
+- [x] grab some data
+- [x] display as static html website (only colored text to html)
       like here (https://mts3.aerob.it/mts3_reports/plan.html)
 
 ## Needed information of Organization
