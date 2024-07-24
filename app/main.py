@@ -97,21 +97,30 @@ def get_open_branches(org: github.Organization.Organization):
 def search_orphaned_branches(org: github.Organization.Organization):
     # search for forks outside of organization
     repos = org.get_repos()
-    members = (
-        org.get_members()
-    )  # FIXME: organization has no public members, no way to test
+    members = org.get_members()
 
     orphan_record = []
 
     for repo in repos:
+        print(repo.name)
         for fork in repo.get_forks():
-            if True:  #  fork.owner in members: # FIXME
-                name = (
-                    fork.owner.name if fork.owner.name is not None else fork.owner.login
-                )
+            if True:  #  fork.owner in members: # FIXME: feature?
+                print(fork.owner)
+                try:
+                    name = (
+                        fork.owner.name
+                        if fork.owner.name is not None
+                        else fork.owner.login
+                    )
+                except:  # noqa: E722
+                    name = None
+
                 commits = fork.get_commits()
-                last_commit_time = commits[0].commit.committer.date
-                ago_str = arrow.get(last_commit_time).humanize()
+                try:
+                    last_commit_time = commits[0].commit.committer.date
+                    ago_str = arrow.get(last_commit_time).humanize()
+                except:  # noqa: E722
+                    last_commit_time = "never"
                 orphan_record.append([repo.name, name, ago_str])
 
     members_repo_record = []
