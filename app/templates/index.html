@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GH Monitor</title>
+    <style>
+      table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      td, tr, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+      }
+      th {
+        font-weight: bold;
+      }
+      .text {
+        display: block;
+        width: 400px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="margin: auto; width: 80%">
+      <h3>Hello, {{user_name}}</h3>
+      <h4>Organization: {{org_name}}</h4>
+      <p>API Calls took {{time}} seconds</p>
+      <h5>Open branch count</h5>
+      <div id="short-table" style="margin: auto; width: 60%">
+        <table>
+          {%for developer, branches in branches_count%}
+          <tr>
+            <th>{{developer}}</th>
+            <th>{{branches}}</th>
+          </tr>
+          {%endfor%}
+        </table>
+      </div>
+      <h5>Detailed view</h5>
+      <table>
+        {%for developer, branches in open_branches%}
+        <tr>
+          <th>{{developer}}</th>
+        </tr>
+        <tr>
+          <td>Repository</td>
+          <td>Branch</td>
+          <td>Last commit message</td>
+          <td>Commited on</td>
+          <td></td>
+        </tr>
+        {%for branch in branches%}
+        <tr>
+          <td>{{branch[0].name}}</a></td>
+          <td>{{branch[1]}}</td>
+          <td><span class="text">{{branch[2]}}</span></td>
+          <td>{{branch[3].strftime("%H:%S %d/%m/%y")}}</td>
+          <td><span style="color: {{branch[5]}}"> {{branch[4]}}</span></td>
+        </tr>
+        {%endfor%} {%endfor%}
+      </table>
+    </div>
+  </body>
+</html>
