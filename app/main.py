@@ -6,6 +6,7 @@ import atexit
 import arrow
 from functools import cache
 import time
+from concurrent import futures
 
 
 def create_app():
@@ -71,13 +72,20 @@ def get_open_branches(org: github.Organization.Organization):
 
     open_branches = dict()
 
-    for i, repo in enumerate(repos):
-        print(f"Got information from {i} repositories")
-        print(repo.name)
-        branches = repo.get_branches()
+    repo_branches = []
+
+    with futures.ThreadPoolExecutor(max_workers=200) as executor:
+        for i, repo in enumerate(repos):
+            branches = repo.get_branches()
+            repo_branches.append((repo, branches))
+            # force pygitub to evaluate commit authors
+            executor.map(lambda branch: branch.commit.author, branches)
+    for repo, branches in repo_branches:
+        # doesn't call the API to evaluate
         for branch in branches:
             if branch.name == repo.default_branch:
                 continue
+            # doesn't call the API to evaluate
             last_commit = branch.commit
             if last_commit.author not in open_branches:
                 open_branches[last_commit.author] = []
@@ -101,27 +109,23 @@ def search_orphaned_branches(org: github.Organization.Organization):
 
     orphan_record = []
 
-    for repo in repos:
-        print(repo.name)
-        for fork in repo.get_forks():
-            if True:  #  fork.owner in members: # FIXME: feature?
-                print(fork.owner)
-                try:
-                    name = (
-                        fork.owner.name
-                        if fork.owner.name is not None
-                        else fork.owner.login
-                    )
-                except:  # noqa: E722
-                    name = None
+    with futures.ThreadPoolExecutor(max_workers=200) as executor:
+        forks_record = executor.map(lambda x: (x.name, list(x.get_forks())), repos)
 
-                commits = fork.get_commits()
-                try:
-                    last_commit_time = commits[0].commit.committer.date
-                    ago_str = arrow.get(last_commit_time).humanize()
-                except:  # noqa: E722
-                    last_commit_time = "never"
-                orphan_record.append([repo.name, name, ago_str])
+    for repo, forks in forks_record:
+        for fork in forks:
+            try:
+                name = fork.owner.login if hasattr(fork, "owner") else None
+            except:  # noqa: E722
+                name = None
+
+            commits = fork.get_commits()
+            try:
+                last_commit_time = commits[0].commit.committer.date
+                ago_str = arrow.get(last_commit_time).humanize()
+            except:  # noqa: E722
+                last_commit_time = "never"
+            orphan_record.append([repo, name, ago_str])
 
     members_repo_record = []
     # list public repositories beloning to organization members
@@ -136,9 +140,8 @@ def search_orphaned_branches(org: github.Organization.Organization):
 def count_open_branches_per_developer(open_branches):
     count_record = [
         (
-            developer.name
-            if developer is not None and developer.name is not None
-            else developer.login
+            # accessing developer.login doesn't result in an API call
+            developer.login
             if developer is not None and developer.login is not None
             else None,
             len(branches),
@@ -152,9 +155,7 @@ def count_open_branches_per_developer(open_branches):
 def convert_record_to_text(open_branches):
     open_branches_text = open_branches.copy()
     names = [
-        developer.name
-        if developer is not None and developer.name is not None
-        else developer.login
+        developer.login
         if developer is not None and developer.login is not None
         else None
         for developer in open_branches.keys()
