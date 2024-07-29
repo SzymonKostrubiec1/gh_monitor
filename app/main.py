@@ -71,19 +71,6 @@ def create_app():
             time=round(elapsed, 2),
         )
 
-    @app.route("/orphans.html")
-    def orphans():
-        start = time.time()
-        orphan_record, members_repo_record = search_orphaned_branches(org)
-        elapsed = time.time() - start
-        return render_template(
-            "orphans.html",
-            org_name=org.login,
-            orphan_record=orphan_record,
-            members_repo_record=members_repo_record,
-            time=round(elapsed, 2),
-        )
-
     return app
 
 
@@ -159,42 +146,6 @@ def get_open_branches(org: github.Organization.Organization):
             executor.map(annotate_issue, records)
 
     return open_branches
-
-
-@cache
-def search_orphaned_branches(org: github.Organization.Organization):
-    # search for forks outside of organization
-    repos = org.get_repos()
-    members = org.get_members()
-
-    orphan_record = []
-
-    with futures.ThreadPoolExecutor(max_workers=200) as executor:
-        forks_record = executor.map(lambda x: (x.name, list(x.get_forks())), repos)
-
-    for repo, forks in forks_record:
-        for fork in forks:
-            try:
-                name = fork.owner.login if hasattr(fork, "owner") else None
-            except github.GithubException:
-                name = None
-
-            commits = fork.get_commits()
-            try:
-                last_commit_time = commits[0].commit.committer.date
-                ago_str = arrow.get(last_commit_time).humanize()
-            except github.GithubException:
-                last_commit_time = "never"
-            orphan_record.append([repo, name, ago_str])
-
-    members_repo_record = []
-    # list public repositories beloning to organization members
-    for member in members:
-        for repo in member.get_repos():
-            name = member.name if member.name is not None else member.login
-            members_repo_record.append([name, repo.name])
-
-    return orphan_record, members_repo_record
 
 
 def count_open_branches_per_developer(open_branches):
