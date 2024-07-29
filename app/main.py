@@ -8,7 +8,7 @@ import arrow
 from functools import cache
 import time
 from concurrent import futures
-from collections import Counter
+from collections import Counter, namedtuple
 from datetime import datetime
 
 
@@ -46,12 +46,28 @@ def create_app():
         elapsed = time.time() - start
         branches_count = count_open_branches_per_developer(open_branches)
         open_branches_text = convert_record_to_text(open_branches)
+
+        def check_nonempty(branches):
+            for branch in branches.values():
+                for _ in branch:
+                    return True
+            return False
+
+        branches_sorted = sort_opened_branches(open_branches)
+        nonempty = [
+            check_nonempty(branches_sorted.open),
+            check_nonempty(branches_sorted.closed),
+            check_nonempty(branches_sorted.unlinked),
+            check_nonempty(branches_sorted.never_linked),
+        ]
         return render_template(
             "index.html",
             user_name=name,
             org_name=org.login,
             open_branches=open_branches_text,
             branches_count=branches_count,
+            branches_sorted=branches_sorted,
+            nonempty=nonempty,
             time=round(elapsed, 2),
         )
 
@@ -218,3 +234,29 @@ def convert_record_to_text(open_branches):
     )
 
     return open_branches_text
+
+
+def sort_opened_branches(open_branches):
+    def login(x):
+        return x.login if x is not None else None
+
+    open_issues = {
+        login(k): filter(lambda record: record.category == "open", v)
+        for k, v in open_branches.items()
+    }
+    closed_issues = {
+        login(k): filter(lambda record: record.category == "closed", v)
+        for k, v in open_branches.items()
+    }
+    unlinked_issues = {
+        login(k): filter(lambda record: record.category == "Unlinked", v)
+        for k, v in open_branches.items()
+    }
+    never_linked_issues = {
+        login(k): filter(lambda record: record.category == "Never linked", v)
+        for k, v in open_branches.items()
+    }
+
+    issues = namedtuple("Issues", ["open", "closed", "unlinked", "never_linked"])
+
+    return issues(open_issues, closed_issues, unlinked_issues, never_linked_issues)

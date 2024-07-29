@@ -11,7 +11,9 @@
         width: 100%;
       }
 
-      td, tr, th {
+      td,
+      tr,
+      th {
         border: 1px solid #dddddd;
         text-align: left;
         padding: 8px;
@@ -33,7 +35,7 @@
       <h3>Hello, {{user_name}}</h3>
       <h4>Organization: {{org_name}}</h4>
       <p>API Calls took {{time}} seconds</p>
-      <span><a href="orphans.html" >Orphan record</a></span>
+      <span><a href="orphans.html">Orphan record</a></span>
       <h5>Open branch count</h5>
       <div id="short-table" style="margin: auto; width: 60%">
         <table>
@@ -55,7 +57,120 @@
           {%endfor%}
         </table>
       </div>
-      <h5>Detailed view</h5>
+      <h5>Breakdown by category</h5>
+
+      {% if nonempty[0] %}
+      <h5>Open issues</h5>
+      <table>
+        <tr>
+          <td>Repository</td>
+          <td>Branch</td>
+          <td>Last commit message</td>
+          <td>Status</td>
+          <td>Labels</td>
+          <td>Commited on</td>
+          <td></td>
+        </tr>
+        {%for developer, records in branches_sorted.open.items()%} {%for record
+        in records%}
+        <tr>
+          <td>{{record.repo.name}}</td>
+          <td>{{record.branch_name}}</td>
+          <td><span class="text">{{record.last_commit_message}}</span></td>
+          <td>{{record.category}}</td>
+          <td>{{' '.join(record.issue_labels)}}</td>
+          <td>{{record.last_commit_time.strftime("%H:%S %d/%m/%y")}}</td>
+          <td>
+            <span style="color: {{record.color}}"> {{record.time_ago}}</span>
+          </td>
+        </tr>
+        {%endfor%}{%endfor%}
+      </table>
+      {%endif%} {% if nonempty[1] %}
+      <h5>Closed issues</h5>
+      <table>
+        <tr>
+          <td>Repository</td>
+          <td>Branch</td>
+          <td>Last commit message</td>
+          <td>Status</td>
+          <td>Labels</td>
+          <td>Commited on</td>
+          <td></td>
+        </tr>
+        {%for developer, records in branches_sorted.closed.items()%} {%for
+        record in records%}
+        <tr>
+          <td>{{record.repo.name}}</td>
+          <td>{{record.branch_name}}</td>
+          <td><span class="text">{{record.last_commit_message}}</span></td>
+          <td>{{record.category}}</td>
+          <td>{{' '.join(record.issue_labels)}}</td>
+          <td>{{record.last_commit_time.strftime("%H:%S %d/%m/%y")}}</td>
+          <td>
+            <span style="color: {{record.color}}"> {{record.time_ago}}</span>
+          </td>
+        </tr>
+        {%endfor%}{%endfor%}
+      </table>
+      {%endif%} {% if nonempty[2] %}
+      <h5>Unlinked issues</h5>
+      <table>
+        <tr>
+          <td>Repository</td>
+          <td>Branch</td>
+          <td>Last commit message</td>
+          <td>Status</td>
+          <td>Labels</td>
+          <td>Commited on</td>
+          <td></td>
+        </tr>
+        {%for developer, records in branches_sorted.unlinked.items()%} {%for
+        record in records%}
+        <tr>
+          <td>{{record.repo.name}}</td>
+          <td>{{record.branch_name}}</td>
+          <td><span class="text">{{record.last_commit_message}}</span></td>
+          <td>{{record.category}}</td>
+          <td>{{' '.join(record.issue_labels)}}</td>
+          <td>{{record.last_commit_time.strftime("%H:%S %d/%m/%y")}}</td>
+          <td>
+            <span style="color: {{record.color}}"> {{record.time_ago}}</span>
+          </td>
+        </tr>
+        {%endfor%}{%endfor%}
+      </table>
+      {%endif%} {% if nonempty[3]%}
+      <h5>Never linked issues</h5>
+      <table>
+        <tr>
+          <td>Repository</td>
+          <td>Branch</td>
+          <td>Last commit message</td>
+          <td>Status</td>
+          <td>Labels</td>
+          <td>Commited on</td>
+          <td></td>
+        </tr>
+        {%for developer, records in branches_sorted.never_linked.items()%} {%for
+        record in records%}
+        <tr>
+          <td>{{record.repo.name}}</td>
+          <td>{{record.branch_name}}</td>
+          <td><span class="text">{{record.last_commit_message}}</span></td>
+          <td>{{record.category}}</td>
+          <td>{{' '.join(record.issue_labels)}}</td>
+          <td>{{record.last_commit_time.strftime("%H:%S %d/%m/%y")}}</td>
+          <td>
+            <span style="color: {{record.color}}"> {{record.time_ago}}</span>
+          </td>
+        </tr>
+        {%endfor%}{%endfor%}
+      </table>
+
+      {%endif%}
+
+      <h5>Breakdown by developer</h5>
       <table>
         {%for developer, records in open_branches.items()%}
         <tr>
@@ -72,13 +187,15 @@
         </tr>
         {%for record in records%}
         <tr>
-          <td>{{record.repo.name}}</a></td>
+          <td>{{record.repo.name}}</td>
           <td>{{record.branch_name}}</td>
           <td><span class="text">{{record.last_commit_message}}</span></td>
           <td>{{record.category}}</td>
           <td>{{' '.join(record.issue_labels)}}</td>
           <td>{{record.last_commit_time.strftime("%H:%S %d/%m/%y")}}</td>
-          <td><span style="color: {{record.color}}"> {{record.time_ago}}</span></td>
+          <td>
+            <span style="color: {{record.color}}"> {{record.time_ago}}</span>
+          </td>
         </tr>
         {%endfor%} {%endfor%}
       </table>
