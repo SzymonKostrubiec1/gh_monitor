@@ -90,6 +90,7 @@ def get_open_branches(org: github.Organization.Organization):
         repo: github.Repository
         category: str
         issue_no: int | None
+        issue: github.Issue.Issue | None
         issue_labels: list[str] | None
         branch_name: str
         last_commit_message: str
@@ -126,19 +127,21 @@ def get_open_branches(org: github.Organization.Organization):
             record.last_commit_time = last_commit.commit.committer.date
             open_branches[last_commit.author].append(record)
 
-    for author, records in open_branches.items():
-        for i, record in enumerate(records):
-            if record.issue_no is None:
-                open_branches[author][i].category = "Never linked"
-            else:
-                try:
-                    issue = record.repo.get_issue(record.issue_no)
-                    open_branches[author][i].category = issue.state
-                    open_branches[author][i].issue_labels = [
-                        issue.name for issue in issue.get_labels()
-                    ]
-                except github.GithubException:
-                    open_branches[author][i].category = "Unlinked"
+    def annotate_issue(record: Info):
+        if record.issue_no is None:
+            record.category = "Never linked"
+        else:
+            try:
+                issue = record.repo.get_issue(record.issue_no)
+                record.category = issue.state
+                record.issue_labels = [issue.name for issue in issue.get_labels()]
+            except github.GithubException:
+                record.category = "Unlinked"
+
+    with futures.ThreadPoolExecutor(max_workers=200) as executor:
+        for author, records in open_branches.items():
+            executor.map(annotate_issue, records)
+
     return open_branches
 
 
