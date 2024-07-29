@@ -1,12 +1,15 @@
 from flask import Flask, render_template
 import github
 import os
+import github.Repository
 from termcolor import colored
 import atexit
 import arrow
 from functools import cache
 import time
 from concurrent import futures
+from collections import Counter
+from datetime import datetime
 
 
 def create_app():
@@ -25,6 +28,9 @@ def create_app():
     except github.GithubException.BadCredentialsException:
         print(colored("Provided token is invalid", "red"))
         exit(1)
+    except github.GithubException as e:
+        print(f"Something went wrong: {e}")
+        pass
 
     atexit.register(lambda: github_connection.close())
 
@@ -40,7 +46,6 @@ def create_app():
         elapsed = time.time() - start
         branches_count = count_open_branches_per_developer(open_branches)
         open_branches_text = convert_record_to_text(open_branches)
-        # prepare text for display
         return render_template(
             "index.html",
             user_name=name,
@@ -80,6 +85,18 @@ def get_open_branches(org: github.Organization.Organization):
             repo_branches.append((repo, branches))
             # force pygitub to evaluate commit authors
             executor.map(lambda branch: branch.commit.author, branches)
+
+    class Info:
+        repo: github.Repository
+        category: str
+        issue_no: int | None
+        issue_labels: list[str] | None
+        branch_name: str
+        last_commit_message: str
+        last_commit_time: datetime
+        time_ago: str
+        color: str
+
     for repo, branches in repo_branches:
         # doesn't call the API to evaluate
         for branch in branches:
@@ -89,15 +106,39 @@ def get_open_branches(org: github.Organization.Organization):
             last_commit = branch.commit
             if last_commit.author not in open_branches:
                 open_branches[last_commit.author] = []
-            open_branches[last_commit.author].append(
-                [
-                    repo,
-                    branch.name,
-                    last_commit.commit.message,
-                    last_commit.commit.committer.date,
-                ]
-            )
 
+            issue_no: int
+            issue_number_separator = branch.name.find("-")
+            if issue_number_separator == -1:
+                issue_no = None
+            else:
+                try:
+                    issue_no = int(branch.name[0:issue_number_separator])
+                except ValueError:
+                    issue_no = None
+
+            record = Info()
+            record.repo = repo
+            record.category = None
+            record.issue_no = issue_no
+            record.branch_name = branch.name
+            record.last_commit_message = last_commit.commit.message
+            record.last_commit_time = last_commit.commit.committer.date
+            open_branches[last_commit.author].append(record)
+
+    for author, records in open_branches.items():
+        for i, record in enumerate(records):
+            if record.issue_no is None:
+                open_branches[author][i].category = "Never linked"
+            else:
+                try:
+                    issue = record.repo.get_issue(record.issue_no)
+                    open_branches[author][i].category = issue.state
+                    open_branches[author][i].issue_labels = [
+                        issue.name for issue in issue.get_labels()
+                    ]
+                except github.GithubException:
+                    open_branches[author][i].category = "Unlinked"
     return open_branches
 
 
@@ -116,14 +157,14 @@ def search_orphaned_branches(org: github.Organization.Organization):
         for fork in forks:
             try:
                 name = fork.owner.login if hasattr(fork, "owner") else None
-            except:  # noqa: E722
+            except github.GithubException:
                 name = None
 
             commits = fork.get_commits()
             try:
                 last_commit_time = commits[0].commit.committer.date
                 ago_str = arrow.get(last_commit_time).humanize()
-            except:  # noqa: E722
+            except github.GithubException:
                 last_commit_time = "never"
             orphan_record.append([repo, name, ago_str])
 
@@ -144,11 +185,10 @@ def count_open_branches_per_developer(open_branches):
             developer.login
             if developer is not None and developer.login is not None
             else None,
-            len(branches),
+            Counter([record.category for record in records]),
         )
-        for developer, branches in open_branches.items()
+        for developer, records in open_branches.items()
     ]
-    count_record.sort(key=lambda record: record[1], reverse=True)
     return count_record
 
 
@@ -161,18 +201,17 @@ def convert_record_to_text(open_branches):
         for developer in open_branches.keys()
     ]
     for branches in open_branches_text.values():
-        branches.sort(key=lambda branch: branch[3], reverse=True)
         for branch in branches:
-            date = branch[3]
-            branch.append(arrow.get(date).humanize())
-            if (arrow.utcnow() - date).days > 30:
-                color = "tomato"
-            elif (arrow.utcnow() - date).days > 7:
-                color = "goldenrod"
+            branch.time_ago = arrow.get(branch.last_commit_time).humanize()
+            date_diff = (arrow.utcnow() - branch.last_commit_time).days
+            if date_diff > 30:
+                branch.color = "tomato"
+            elif date_diff > 7:
+                branch.color = "goldenrod"
             else:
-                color = "black"
-            branch.append(color)
-
-    open_branches_text = zip(names, open_branches_text.values())
+                branch.color = "black"
+    open_branches_text = dict(
+        map(lambda i, j: (i, j), names, open_branches_text.values())
+    )
 
     return open_branches_text

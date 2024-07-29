@@ -37,17 +37,27 @@
       <h5>Open branch count</h5>
       <div id="short-table" style="margin: auto; width: 60%">
         <table>
+          <tr>
+            <th>Developer</th>
+            <th>Open</th>
+            <th>Closed</th>
+            <th>Unlinked</th>
+            <th>Never linked</th>
+          </tr>
           {%for developer, branches in branches_count%}
           <tr>
-            <th>{{developer}}</th>
-            <th>{{branches}}</th>
+            <td>{{developer}}</td>
+            <td>{{branches['open']}}</td>
+            <td>{{branches['closed']}}</td>
+            <td>{{branches['Unlinked']}}</td>
+            <td>{{branches['Never linked']}}</td>
           </tr>
           {%endfor%}
         </table>
       </div>
       <h5>Detailed view</h5>
       <table>
-        {%for developer, branches in open_branches%}
+        {%for developer, records in open_branches.items()%}
         <tr>
           <th>{{developer}}</th>
         </tr>
@@ -55,16 +65,20 @@
           <td>Repository</td>
           <td>Branch</td>
           <td>Last commit message</td>
+          <td>Status</td>
+          <td>Labels</td>
           <td>Commited on</td>
           <td></td>
         </tr>
-        {%for branch in branches%}
+        {%for record in records%}
         <tr>
-          <td>{{branch[0].name}}</a></td>
-          <td>{{branch[1]}}</td>
-          <td><span class="text">{{branch[2]}}</span></td>
-          <td>{{branch[3].strftime("%H:%S %d/%m/%y")}}</td>
-          <td><span style="color: {{branch[5]}}"> {{branch[4]}}</span></td>
+          <td>{{record.repo.name}}</a></td>
+          <td>{{record.branch_name}}</td>
+          <td><span class="text">{{record.last_commit_message}}</span></td>
+          <td>{{record.category}}</td>
+          <td>{{' '.join(record.issue_labels)}}</td>
+          <td>{{record.last_commit_time.strftime("%H:%S %d/%m/%y")}}</td>
+          <td><span style="color: {{record.color}}"> {{record.time_ago}}</span></td>
         </tr>
         {%endfor%} {%endfor%}
       </table>
